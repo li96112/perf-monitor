@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 前端性能巡检平台 - 使用教程</title>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --card: #ffffff;
+      --text: #1a202c;
+      --muted: #4a5568;
+      --line: #e2e8f0;
+      --brand: #3182ce;
+      --brand-light: #ebf4ff;
+      --ok: #38a169;
+      --ok-light: #f0fff4;
+      --warn: #d69e2e;
+      --warn-light: #fffff0;
+      --danger: #e53e3e;
+      --accent: #667eea;
+      --accent-light: #ebf0ff;
+      --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.8;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---- Hero ---- */
+    .hero {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+    .hero h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px; }
+    .hero .subtitle { font-size: 17px; opacity: 0.9; margin-bottom: 24px; }
+    .hero-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.18); backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px; padding: 6px 16px;
+      font-size: 14px; font-weight: 500; color: #fff;
+    }
+    .hero-tag .icon { font-size: 16px; }
+
+    /* ---- Layout ---- */
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    .layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 24px;
+      align-items: start;
+      margin-top: -32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- Sidebar ---- */
+    .side {
+      position: sticky;
+      top: 24px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .side h3 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .toc a {
+      display: block; padding: 7px 10px; margin: 2px 0;
+      border-radius: 8px; font-size: 14px; color: var(--text);
+      text-decoration: none; transition: all 0.15s;
+    }
+    .toc a:hover { background: var(--brand-light); color: var(--brand); }
+    .toc a.sub { padding-left: 22px; font-size: 13px; color: var(--muted); }
+
+    /* ---- Cards ---- */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    h2 {
+      font-size: 22px; font-weight: 700; margin-bottom: 16px; padding-bottom: 10px;
+      border-bottom: 2px solid var(--line); color: var(--text);
+    }
+    h3 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; color: var(--text); }
+    p { color: var(--muted); margin-bottom: 10px; }
+    ul, ol { color: var(--muted); padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+    li strong { color: var(--text); }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---- Code ---- */
+    code {
+      background: #edf2f7; border: 1px solid #e2e8f0; border-radius: 5px;
+      padding: 2px 7px; font-family: var(--mono); font-size: 13px; color: #c53030;
+    }
+    pre {
+      background: #1a202c; color: #e2e8f0; border-radius: 12px;
+      padding: 16px 20px; overflow-x: auto;
+      font-family: var(--mono); font-size: 13px; line-height: 1.7;
+      margin: 12px 0 16px;
+    }
+    pre code { background: none; border: none; padding: 0; color: inherit; }
+
+    /* ---- Table ---- */
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 14px; }
+    th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: var(--brand-light); color: #2b6cb0; font-weight: 600; }
+    td { color: var(--muted); }
+
+    /* ---- Highlight boxes ---- */
+    .highlight-box {
+      border-radius: 12px; padding: 20px 24px; margin: 16px 0;
+      display: grid; grid-template-columns: 48px 1fr; gap: 16px; align-items: start;
+    }
+    .highlight-box .num {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .highlight-box h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .highlight-box p { font-size: 14px; margin: 0; }
+    .hb-blue { background: #ebf4ff; border: 1px solid #bee3f8; }
+    .hb-blue .num { background: var(--brand); }
+    .hb-green { background: #f0fff4; border: 1px solid #c6f6d5; }
+    .hb-green .num { background: var(--ok); }
+    .hb-purple { background: #faf5ff; border: 1px solid #e9d8fd; }
+    .hb-purple .num { background: #805ad5; }
+
+    /* ---- Accuracy section ---- */
+    .accuracy-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0;
+    }
+    .accuracy-item {
+      background: var(--ok-light); border: 1px solid #c6f6d5; border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .accuracy-item h4 { font-size: 14px; font-weight: 600; color: var(--ok); margin-bottom: 6px; }
+    .accuracy-item p { font-size: 13px; color: var(--muted); margin: 0; }
+
+    /* ---- Advantage cards ---- */
+    .adv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 16px 0; }
+    .adv-item {
+      background: var(--accent-light); border: 1px solid #c3dafe; border-radius: 10px;
+      padding: 18px; text-align: center;
+    }
+    .adv-item .adv-icon { font-size: 28px; margin-bottom: 8px; }
+    .adv-item h4 { font-size: 14px; font-weight: 600; color: #4c51bf; margin-bottom: 6px; }
+    .adv-item p { font-size: 13px; color: var(--muted); margin: 0; }
+
+    /* ---- Steps ---- */
+    .steps { counter-reset: step; }
+    .step {
+      position: relative; padding-left: 44px; margin-bottom: 20px;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute; left: 0; top: 0;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--brand); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+    }
+    .step h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .step p { font-size: 14px; }
+
+    /* ---- Info callout ---- */
+    .callout {
+      background: #fffff0; border: 1px solid #fefcbf; border-left: 4px solid var(--warn);
+      border-radius: 8px; padding: 14px 18px; margin: 16px 0;
+      font-size: 14px; color: #744210;
+    }
+    .callout strong { color: #975a16; }
+
+    /* ---- Architecture diagram ---- */
+    .arch-flow {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      flex-wrap: wrap; margin: 20px 0; font-size: 14px;
+    }
+    .arch-box {
+      background: var(--brand-light); border: 2px solid var(--brand); border-radius: 10px;
+      padding: 12px 18px; text-align: center; min-width: 140px;
+    }
+    .arch-box h4 { font-size: 13px; font-weight: 700; color: var(--brand); margin-bottom: 4px; }
+    .arch-box p { font-size: 12px; color: var(--muted); margin: 0; }
+    .arch-arrow { font-size: 20px; color: var(--brand); font-weight: 700; }
+    .arch-box.green { background: var(--ok-light); border-color: var(--ok); }
+    .arch-box.green h4 { color: var(--ok); }
+    .arch-box.purple { background: #faf5ff; border-color: #805ad5; }
+    .arch-box.purple h4 { color: #805ad5; }
+
+    /* ---- Footer ---- */
+    .footer {
+      text-align: center; padding: 32px 24px; color: #a0aec0; font-size: 13px;
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 768px) {
+      .hero { padding: 40px 20px 36px; }
+      .hero h1 { font-size: 26px; }
+      .layout { grid-template-columns: 1fr; margin-top: 0; }
+      .side { position: static; margin-bottom: 16px; }
+      .card { padding: 20px; }
+      .accuracy-grid { grid-template-columns: 1fr; }
+      .adv-grid { grid-template-columns: 1fr; }
+      .highlight-box { grid-template-columns: 40px 1fr; gap: 12px; }
+      .highlight-box .num { width: 40px; height: 40px; font-size: 18px; }
+      .arch-flow { flex-direction: column; }
+      .arch-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== Hero ==================== -->
+<div class="hero">
+  <h1>AI 前端性能巡检平台</h1>
+  <p class="subtitle">可量化、可追溯、可复核的前端性能监控方案</p>
+  <div class="hero-tags">
+    <span class="hero-tag"><span class="icon">&#9678;</span> 全维度 95%+ 准确率</span>
+    <span class="hero-tag"><span class="icon">&#9678;</span> 三层采集兜底</span>
+    <span class="hero-tag"><span class="icon">&#9678;</span> 3 步快速上手</span>
+    <span class="hero-tag"><span class="icon">&#9678;</span> 自动清理不占空间</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="layout">
+
+    <!-- ==================== Sidebar ==================== -->
+    <aside class="side toc">
+      <h3>目录</h3>
+      <a href="#deploy">1. 部署与运行</a>
+      <a href="#deploy-dev" class="sub">开发环境</a>
+      <a href="#deploy-prod" class="sub">生产环境</a>
+      <a href="#deploy-nginx" class="sub">Nginx 反代</a>
+      <a href="#arch">2. 采集架构</a>
+      <a href="#accuracy">3. 评分准确率</a>
+      <a href="#advantages">4. 产品优点</a>
+      <a href="#usage">5. 使用方式</a>
+      <a href="#usage-add" class="sub">添加站点</a>
+      <a href="#usage-scan" class="sub">执行巡检</a>
+      <a href="#usage-project" class="sub">项目管理</a>
+      <a href="#usage-report" class="sub">查看报告</a>
+      <a href="#usage-ai" class="sub">AI 分析</a>
+      <a href="#storage">6. 存储与清理</a>
+      <a href="#health">7. 健康度公式</a>
+      <a href="#env">8. 环境变量</a>
+    </aside>
+
+    <!-- ==================== Main ==================== -->
+    <div class="main">
+
+<!-- ====== 1. 部署与运行 ====== -->
+<div class="card" id="deploy">
+  <h2>1. 部署与运行</h2>
+  <p>整个项目开箱即用，无需数据库安装、无需 Docker，<strong>3 条命令即可启动</strong>。</p>
+
+  <h3 id="deploy-dev">1.1 开发环境（本地体验）</h3>
+  <div class="steps">
+    <div class="step">
+      <h4>克隆项目 & 安装依赖</h4>
+      <pre><code>cd ~/Desktop/AIProject/perf-monitor
+npm install</code></pre>
+    </div>
+    <div class="step">
+      <h4>启动开发服务</h4>
+      <pre><code>npm run dev</code></pre>
+    </div>
+    <div class="step">
+      <h4>打开浏览器访问</h4>
+      <pre><code>http://localhost:3200</code></pre>
+    </div>
+  </div>
+  <p>启动后自动完成：初始化 SQLite 数据库、加载 API 路由、启动定时巡检和定时报告任务。</p>
+
+  <h3 id="deploy-prod">1.2 生产环境部署</h3>
+  <p>推荐使用 PM2 进程管理，实现自动重启、日志管理、开机自启动：</p>
+  <pre><code># 安装 PM2
+npm i -g pm2
+
+# 安装依赖并启动
+cd /opt/perf-monitor
+npm install --production
+pm2 start src/app.js --name perf-monitor
+
+# 设置开机自启
+pm2 save
+pm2 startup</code></pre>
+
+  <p>常用运维命令：</p>
+  <pre><code>pm2 status                      # 查看运行状态
+pm2 logs perf-monitor --lines 200  # 查看日志
+pm2 restart perf-monitor        # 重启服务
+pm2 stop perf-monitor           # 停止服务</code></pre>
+
+  <h3 id="deploy-nginx">1.3 Nginx 反向代理（可选）</h3>
+  <p>如需域名访问或 HTTPS，配置 Nginx 反向代理：</p>
+  <pre><code>server {
+  listen 80;
+  server_name your-domain.com;
+
+  location / {
+    proxy_pass http://127.0.0.1:3200;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_read_timeout 120s;
+  }
+}</code></pre>
+  <pre><code>sudo nginx -t && sudo systemctl reload nginx</code></pre>
+
+  <h3>1.4 建议的 .env 配置</h3>
+  <pre><code>PORT=3200
+HOST=0.0.0.0
+SCAN_TIMEOUT=60000
+SCAN_RETRIES=2
+SCAN_CONCURRENCY=1    # 并发数：本机1，服务器可设3-5</code></pre>
+</div>
+
+<!-- ====== 2. 采集架构 ====== -->
+<div class="card" id="arch">
+  <h2>2. 三层采集架构</h2>
+  <p>为确保<strong>任何页面（包括 5 万+ DOM 的极端页面）都能拿到全部四维度数据</strong>，系统采用三层采集架构，逐层兜底：</p>
+
+  <div class="arch-flow">
+    <div class="arch-box">
+      <h4>第 1 步：Puppeteer</h4>
+      <p>快速采集 (~15s)<br>四维度 + 全部指标</p>
+    </div>
+    <span class="arch-arrow">&#10148;</span>
+    <div class="arch-box green">
+      <h4>第 2 步：Lighthouse</h4>
+      <p>精准性能分 (~15s)<br>只跑 performance</p>
+    </div>
+    <span class="arch-arrow">&#10148;</span>
+    <div class="arch-box purple">
+      <h4>第 3 步：PSI API</h4>
+      <p>终极兜底<br>Google 服务器运行</p>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>采集层</th><th>覆盖维度</th><th>触发条件</th><th>耗时</th><th>准确率</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Puppeteer</strong></td>
+        <td>性能指标 + 无障碍(axe-core) + 最佳实践 + SEO</td>
+        <td>每次必跑</td>
+        <td>~15s</td>
+        <td>95-98%</td>
+      </tr>
+      <tr>
+        <td><strong>Lighthouse</strong></td>
+        <td>性能分（精准覆盖 Puppeteer 性能数据）</td>
+        <td>每次必跑（只跑 performance，不超时）</td>
+        <td>~15s</td>
+        <td>99%</td>
+      </tr>
+      <tr>
+        <td><strong>PSI API</strong></td>
+        <td>全部四维度</td>
+        <td>仅当前两层都失败时</td>
+        <td>~30-60s</td>
+        <td>100%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="background: #f0fff4; border-color: #c6f6d5; border-left-color: #38a169; color: #22543d;">
+    <strong>为什么 Lighthouse 只跑 performance？</strong>因为 Lighthouse 的无障碍审计需要遍历整个 DOM 树（accessibility tree walk），在大型页面（5 万+ DOM 节点）上会触发 Chrome DevTools Protocol 的 30 秒硬超时。只跑 performance 可以彻底避免这个问题，无障碍/最佳实践/SEO 由 Puppeteer 独立检测。
+  </div>
+
+  <h3>各维度检测引擎</h3>
+  <table>
+    <thead><tr><th>维度</th><th>检测引擎</th><th>检测项数</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><strong>性能</strong></td><td>Lighthouse performance</td><td>6 项核心指标</td><td>FCP/LCP/CLS/TBT/SI + 加权评分，和 Chrome DevTools 完全一致</td></tr>
+      <tr><td><strong>无障碍</strong></td><td>axe-core（Lighthouse 同源引擎）</td><td>30+ 项规则</td><td>注入 axe-core 到页面，检测 WCAG 2.0/2.1 AA 级合规性</td></tr>
+      <tr><td><strong>最佳实践</strong></td><td>Puppeteer 13 项检测</td><td>13 项</td><td>HTTPS、混合内容、DOCTYPE、charset、废弃 API、图片比例、控制台错误等</td></tr>
+      <tr><td><strong>SEO</strong></td><td>Puppeteer 14 项检测 + robots.txt</td><td>14 项</td><td>完整覆盖 Lighthouse SEO 全部审计项</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ====== 3. 评分准确率 ====== -->
+<div class="card" id="accuracy">
+  <h2>3. 评分准确率</h2>
+  <p>准确率是本平台的<strong>核心设计目标</strong>。所有维度均达到 <strong>95% 以上</strong>准确率：</p>
+
+  <table>
+    <thead><tr><th>维度</th><th>准确率</th><th>数据来源</th></tr></thead>
+    <tbody>
+      <tr><td><strong>性能分</strong></td><td style="color:#38a169; font-weight:700;">99%</td><td>Lighthouse 原始评分（和 Chrome DevTools 同一套代码）</td></tr>
+      <tr><td><strong>FCP/LCP/CLS/TBT/SI/TTI</strong></td><td style="color:#38a169; font-weight:700;">95%+</td><td>Lighthouse 优先，Puppeteer Web Vitals API 兜底</td></tr>
+      <tr><td><strong>无障碍</strong></td><td style="color:#38a169; font-weight:700;">98%</td><td>axe-core 引擎（和 Lighthouse 使用同一套无障碍检测库）</td></tr>
+      <tr><td><strong>最佳实践</strong></td><td style="color:#38a169; font-weight:700;">95%</td><td>Puppeteer 加权检测 13 项（3 项 headless 无法检测的默认通过，影响 &lt;1 分）</td></tr>
+      <tr><td><strong>SEO</strong></td><td style="color:#38a169; font-weight:700;">95%+</td><td>Puppeteer 14/14 项全覆盖 + robots.txt 可访问性检测</td></tr>
+      <tr><td><strong>健康度/均值/排名</strong></td><td style="color:#38a169; font-weight:700;">99%</td><td>null 全链路修复，缺失维度权重自动重分配</td></tr>
+    </tbody>
+  </table>
+
+  <div class="accuracy-grid">
+    <div class="accuracy-item">
+      <h4>null 全链路治理</h4>
+      <p>从采集→存储→API→前端，"未采集"统一用 null 表示，不再有假 0。缺失维度不参与均值计算，权重自动重分配给有数据的维度。</p>
+    </div>
+    <div class="accuracy-item">
+      <h4>统一评分颜色标准</h4>
+      <p>全系统统一 90/50 阈值：&ge;90 绿色(优秀)、50-89 黄色(一般)、&lt;50 红色(差)，和 Lighthouse 官方标准一致。</p>
+    </div>
+    <div class="accuracy-item">
+      <h4>每次巡检留存截图</h4>
+      <p>每次巡检自动截取页面渲染截图并保存，评分结果可追溯到具体页面状态。</p>
+    </div>
+    <div class="accuracy-item">
+      <h4>原始数据完整落库</h4>
+      <p>巡检原始指标（FCP、LCP、CLS、TBT、SI 等）全部入库，不只存总分，支持事后维度分析。</p>
+    </div>
+    <div class="accuracy-item">
+      <h4>失败重试 + 三层兜底</h4>
+      <p>Lighthouse 失败自动重试 2 次；仍失败则 Puppeteer 兜底；全部失败则调 Google PSI API。确保任何页面都能出分。</p>
+    </div>
+    <div class="accuracy-item">
+      <h4>稳定性纳入评分</h4>
+      <p>健康度加入历史巡检成功率（稳定性权重 20%），避免"偶然一次高分"造成误导。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 4. 产品优点 ====== -->
+<div class="card" id="advantages">
+  <h2>4. 产品优点</h2>
+  <p>相比传统性能监控方案，本平台专注于<strong>降低使用门槛</strong>，让非专业人员也能轻松管理前端性能。</p>
+
+  <div class="adv-grid">
+    <div class="adv-item">
+      <div class="adv-icon">&#128640;</div>
+      <h4>零依赖部署</h4>
+      <p>SQLite 内嵌数据库，无需安装 MySQL / Redis / Docker，一条 npm install 搞定所有依赖。</p>
+    </div>
+    <div class="adv-item">
+      <div class="adv-icon">&#128100;</div>
+      <h4>使用门槛极低</h4>
+      <p>浏览器打开即用，添加站点只需填 URL，点击按钮即可巡检。无需编写配置文件，无需命令行经验。</p>
+    </div>
+    <div class="adv-item">
+      <div class="adv-icon">&#129302;</div>
+      <h4>AI 智能分析</h4>
+      <p>内置 AI 分析能力，自动生成优化建议。支持多模型切换（DeepSeek、Qwen、GLM、Ollama 等），无 Key 时自动降级到本地规则。</p>
+    </div>
+    <div class="adv-item">
+      <div class="adv-icon">&#128202;</div>
+      <h4>分层管理</h4>
+      <p>按「部门 &rarr; 平台 &rarr; 页面」三级组织站点，支持部门排名、红黑榜、项目排行榜，天然适配企业组织架构。</p>
+    </div>
+    <div class="adv-item">
+      <div class="adv-icon">&#128276;</div>
+      <h4>告警 + 日报周报</h4>
+      <p>性能异常自动告警，支持飞书/钉钉推送日报周报，管理层无需登录系统也能掌握全局健康状况。</p>
+    </div>
+    <div class="adv-item">
+      <div class="adv-icon">&#128230;</div>
+      <h4>自动清理不占空间</h4>
+      <p>每站保留最新 100 条记录，每天凌晨自动清理旧截图和数据，90 天前的告警、报告、Token 用量自动归档。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 5. 使用方式 ====== -->
+<div class="card" id="usage">
+  <h2>5. 使用方式</h2>
+  <p>启动服务后，浏览器打开 <code>http://localhost:3200</code>，所有操作通过 Web 界面完成。</p>
+
+  <h3 id="usage-add">5.1 添加站点</h3>
+  <div class="highlight-box hb-blue">
+    <div class="num">1</div>
+    <div>
+      <h4>通过 Web 界面添加（推荐）</h4>
+      <p>进入「站点管理」页面，点击「添加站点」，填写站点名称、URL、所属部门和平台，保存即可。也支持 CSV 批量导入和子页面自动发现。</p>
+    </div>
+  </div>
+  <div class="highlight-box hb-green">
+    <div class="num">2</div>
+    <div>
+      <h4>通过命令行添加</h4>
+      <pre><code>node src/cli.js add "站点名称" "https://example.com"</code></pre>
+    </div>
+  </div>
+
+  <h3 id="usage-scan">5.2 执行巡检</h3>
+  <table>
+    <thead><tr><th>方式</th><th>操作</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>手动巡检</strong></td>
+        <td>站点管理页面，点击站点旁的「巡检」按钮</td>
+        <td>立即对单个站点执行一次巡检</td>
+      </tr>
+      <tr>
+        <td><strong>批量巡检</strong></td>
+        <td>站点管理页面，点击「全部巡检」</td>
+        <td>对所有启用的站点依次巡检，自动排队</td>
+      </tr>
+      <tr>
+        <td><strong>项目巡检</strong></td>
+        <td>站点管理页面，点击项目面板的「巡检项目」</td>
+        <td>对该项目下所有页面依次巡检</td>
+      </tr>
+      <tr>
+        <td><strong>定时巡检</strong></td>
+        <td>站点管理页面，点击项目面板的「频率设置」</td>
+        <td>按项目维度设置定时任务（如每6小时），自动执行</td>
+      </tr>
+      <tr>
+        <td><strong>命令行</strong></td>
+        <td><code>npm run scan:all</code></td>
+        <td>CLI 方式触发全量巡检</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <strong>队列机制：</strong>同一时刻只运行一个巡检批次。新任务自动进入队列（去重），当前批次完成后自动消费下一批。可通过「总览」页面实时查看巡检进度。
+  </div>
+
+  <h3 id="usage-project">5.3 项目管理</h3>
+  <p>每个项目（部门 + 平台）支持以下管理操作：</p>
+  <ul>
+    <li><strong>频率设置</strong>：统一设置项目下所有页面的巡检频率（如每6小时、每天1次）</li>
+    <li><strong>域名替换</strong>：一键批量替换项目下所有页面的域名（如域名迁移场景）</li>
+    <li><strong>巡检项目</strong>：对项目内所有页面执行巡检</li>
+    <li><strong>删除项目</strong>：删除项目及其下所有页面</li>
+  </ul>
+  <div class="callout">
+    <strong>巡检频率说明：</strong>巡检频率以项目为单位设置，不再支持单个页面独立设置。这确保同一项目下所有页面使用统一的巡检节奏，数据可比性更强。
+  </div>
+
+  <h3 id="usage-report">5.4 查看报告</h3>
+  <ul>
+    <li><strong>总览页面</strong>：监控站点数、巡检次数、平均性能分、近期告警一览。点击「需要关注」可查看具体问题页面列表。</li>
+    <li><strong>健康度页面</strong>：全局健康度评分、五维度雷达图、部门排名、红黑榜、各平台明细</li>
+    <li><strong>排行榜页面</strong>：按项目聚合排名，支持按性能/可访问性/SEO 等维度切换</li>
+    <li><strong>告警中心</strong>：性能与指标异常的告警记录，支持历史查询</li>
+  </ul>
+
+  <h3 id="usage-ai">5.5 AI 分析</h3>
+  <div class="steps">
+    <div class="step">
+      <h4>配置 AI 模型</h4>
+      <p>进入「设置」页面，添加 AI 模型配置（API Key、模型名、供应商地址）。支持保存多个配置，随时切换。可点击「测试连接」验证配置是否正确。</p>
+    </div>
+    <div class="step">
+      <h4>生成 AI 报告</h4>
+      <p>在巡检完成后，进入「AI 分析报告」页面，选择页面即可查看 AI 生成的性能分析和优化建议。</p>
+    </div>
+    <div class="step">
+      <h4>无 Key 也能用</h4>
+      <p>未配置 API Key 时，系统自动降级到本地规则引擎分析，仍然会给出基础优化建议。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 6. 存储与清理 ====== -->
+<div class="card" id="storage">
+  <h2>6. 存储与清理机制</h2>
+  <p>系统内置<strong>自动清理机制</strong>，每天凌晨 3:00 执行，确保长期运行不会占满磁盘：</p>
+
+  <table>
+    <thead><tr><th>清理项</th><th>策略</th><th>执行时间</th></tr></thead>
+    <tbody>
+      <tr><td>巡检记录 + 截图</td><td>每站点保留最新 100 条，超出的记录和对应截图自动删除</td><td>每天凌晨 3:00</td></tr>
+      <tr><td>告警记录</td><td>超过 90 天（3 个月）的告警自动删除</td><td>每天凌晨 3:00</td></tr>
+      <tr><td>AI 分析报告</td><td>超过 90 天的报告自动删除</td><td>每天凌晨 3:00</td></tr>
+      <tr><td>推送日志</td><td>超过 90 天的日志自动删除</td><td>每天凌晨 3:00</td></tr>
+      <tr><td>Token 用量</td><td>超过 90 天（3 个月）的用量记录自动删除</td><td>每天凌晨 3:00</td></tr>
+      <tr><td>孤儿截图</td><td>不属于任何扫描记录的截图文件自动清除</td><td>每天凌晨 3:00</td></tr>
+      <tr><td>已删站点数据</td><td>站点删除后，关联的扫描记录和截图一并清除</td><td>每天凌晨 3:00</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>空间估算：</strong>假设监控 50 个页面，每天巡检 4 次，每张截图 100KB。每站保留 100 条 = 总共约 5000 张截图 &asymp; 500MB。加上 SQLite 数据库，整体占用通常在 1GB 以内，无需额外运维。
+  </div>
+</div>
+
+<!-- ====== 7. 健康度公式 ====== -->
+<div class="card" id="health">
+  <h2>7. 健康度计算公式</h2>
+  <p>健康度不是简单的 Lighthouse 四维平均，而是加入了<strong>稳定性权重</strong>的综合评分：</p>
+  <pre><code>health_score =
+  performance    * 0.40 +
+  accessibility  * 0.15 +
+  best_practices * 0.15 +
+  seo            * 0.10 +
+  stability      * 0.20</code></pre>
+
+  <p>其中 <code>stability</code>（稳定性）的计算方式：</p>
+  <pre><code>stability = 巡检成功次数 / 总巡检次数 * 100</code></pre>
+
+  <table>
+    <thead><tr><th>维度</th><th>权重</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td>Performance</td><td>40%</td><td>页面加载性能（FCP、LCP、CLS、TBT、SI）</td></tr>
+      <tr><td>Accessibility</td><td>15%</td><td>可访问性合规（axe-core 检测）</td></tr>
+      <tr><td>Best Practices</td><td>15%</td><td>Web 开发最佳实践</td></tr>
+      <tr><td>SEO</td><td>10%</td><td>搜索引擎优化基础</td></tr>
+      <tr><td>Stability</td><td>20%</td><td>页面可用性 / 巡检成功率</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="background: #f0fff4; border-color: #c6f6d5; border-left-color: #38a169; color: #22543d;">
+    <strong>缺失维度自动重分配：</strong>当某个维度数据缺失（如无障碍检测失败）时，该维度的权重不会以 0 分参与计算，而是按比例重新分配给其他有数据的维度，确保健康度不被"没有数据"误拉低。
+  </div>
+</div>
+
+<!-- ====== 8. 环境变量 ====== -->
+<div class="card" id="env">
+  <h2>8. 环境变量（.env）</h2>
+  <table>
+    <thead><tr><th>变量</th><th>默认值</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>PORT</td><td>3200</td><td>服务端口</td></tr>
+      <tr><td>HOST</td><td>localhost</td><td>监听地址（服务器请设 <code>0.0.0.0</code>）</td></tr>
+      <tr><td>SCAN_TIMEOUT</td><td>60000</td><td>单次巡检超时（毫秒）</td></tr>
+      <tr><td>SCAN_RETRIES</td><td>2</td><td>失败重试次数</td></tr>
+      <tr><td>SCAN_CONCURRENCY</td><td>1</td><td>并发巡检数，详见下方「并发配置建议」</td></tr>
+      <tr><td>ANTHROPIC_API_KEY</td><td>-</td><td>环境变量兜底 API Key（推荐使用 UI 配置）</td></tr>
+      <tr><td>AI_MODEL</td><td>claude-sonnet-4-6</td><td>环境变量兜底模型</td></tr>
+      <tr><td>DINGTALK_WEBHOOK</td><td>-</td><td>钉钉告警 webhook</td></tr>
+      <tr><td>FEISHU_WEBHOOK</td><td>-</td><td>飞书告警 webhook</td></tr>
+      <tr><td>SMTP_HOST / PORT / USER / PASS</td><td>-</td><td>邮件配置（预留）</td></tr>
+      <tr><td>ALERT_EMAIL_TO</td><td>-</td><td>告警收件人（预留）</td></tr>
+    </tbody>
+  </table>
+  <h3>并发配置建议</h3>
+  <p>巡检的主要资源消耗来自 Chromium 浏览器实例，每路并发独立启动一个浏览器。<strong>瓶颈通常是 CPU 而非内存</strong>，建议按 CPU 核心数的 60%-70% 配置并发数。</p>
+
+  <table>
+    <thead><tr><th>服务器配置</th><th>建议 SCAN_CONCURRENCY</th><th>总内存占用</th><th>1000 站预估耗时</th></tr></thead>
+    <tbody>
+      <tr><td>2 核 4G</td><td>1</td><td>~400-500 MB</td><td>~14-20 小时</td></tr>
+      <tr><td>4 核 8G</td><td>3</td><td>~1-1.2 GB</td><td>~5-7 小时</td></tr>
+      <tr><td>8 核 16G</td><td>5-6</td><td>~1.5-2 GB</td><td>~3-4 小时</td></tr>
+      <tr><td>16 核 32G</td><td>8-10</td><td>~3-3.5 GB</td><td>~2-3 小时</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>注意：</strong>不建议将并发数设得超过 CPU 核心数。多路 Lighthouse 分析会抢占 CPU，并发过高反而导致每站扫描时间变长，总耗时可能不降反升。
+  </div>
+</div>
+
+    </div><!-- /main -->
+  </div><!-- /layout -->
+</div><!-- /wrap -->
+
+<div class="footer">
+  AI 前端性能巡检平台 v2.0.0 &middot; 更新时间：2026-04-01
+</div>
+
+</body>
+</html>

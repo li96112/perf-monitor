@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 前端性能巡检平台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- 粒子背景 -->
+  <canvas id="particles-bg"></canvas>
+
+  <!-- Toast 通知 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- 头部 -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">AI</div>
+      <div>
+        <div class="header-title">AI 性能巡检平台</div>
+        <div class="header-subtitle">前端性能自动化监测系统</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-time" id="headerTime"></div>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换白天/夜间模式">&#9790;</button>
+      <div class="header-status">
+        <span class="status-dot"></span>
+        <span id="systemStatus">系统在线</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 导航 -->
+  <nav class="nav" id="mainNav">
+    <button class="nav-item active" data-page="dashboard">总览</button>
+    <button class="nav-item" data-page="health">健康度</button>
+    <button class="nav-item" data-page="ranking">排行榜</button>
+    <button class="nav-item" data-page="sites">站点管理</button>
+    <button class="nav-item" data-page="reports">AI 分析报告</button>
+    <button class="nav-item" data-page="alerts">告警中心</button>
+    <button class="nav-item" data-page="settings">设置</button>
+  </nav>
+
+  <!-- 主内容 -->
+  <main class="main">
+
+    <!-- ===== Dashboard ===== -->
+    <div class="page active" id="page-dashboard">
+      <!-- 统计卡片 -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card cyan animate-in">
+          <div class="stat-icon">S</div>
+          <div class="stat-value" id="statSites">0</div>
+          <div class="stat-label">监控站点</div>
+        </div>
+        <div class="stat-card blue animate-in">
+          <div class="stat-icon">T</div>
+          <div class="stat-value" id="statScans">0</div>
+          <div class="stat-label">巡检总次数</div>
+        </div>
+        <div class="stat-card green animate-in">
+          <div class="stat-icon">P</div>
+          <div class="stat-value" id="statAvgPerf">--</div>
+          <div class="stat-label">平均性能分</div>
+        </div>
+        <div class="stat-card purple animate-in">
+          <div class="stat-icon">A</div>
+          <div class="stat-value" id="statAlerts">0</div>
+          <div class="stat-label">近期告警</div>
+        </div>
+      </div>
+
+      <!-- 部门列表 -->
+      <div class="panel animate-in">
+        <div class="panel-header">
+          <div class="panel-title">部门概览</div>
+          <div class="panel-actions">
+            <button class="btn btn-primary" onclick="showAddSiteModal()">+ 添加站点</button>
+            <button class="btn btn-success" onclick="scanAllSites()">全部巡检</button>
+          </div>
+        </div>
+        <div class="panel-body" id="departmentList">
+          <!-- JS 动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 健康度 ===== -->
+    <div class="page" id="page-health">
+      <!-- 全局健康度仪表盘 -->
+      <div class="health-top-grid" style="margin-bottom:1.5rem;">
+        <!-- 左侧：大环形图 -->
+        <div class="panel animate-in">
+          <div class="panel-header">
+            <div class="panel-title">全局健康度</div>
+          </div>
+          <div class="panel-body health-gauge-body">
+            <div id="healthGaugeChart" style="width:260px; height:260px;"></div>
+          </div>
+        </div>
+        <!-- 右侧：维度卡片 -->
+        <div>
+          <div class="health-dimension-grid" id="healthDimensionCards">
+            <!-- JS 动态生成 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 部门健康度排名 -->
+      <div class="panel animate-in" style="margin-bottom:1.5rem;">
+        <div class="panel-header">
+          <div class="panel-title">部门健康度排名</div>
+        </div>
+        <div class="panel-body">
+          <div id="healthDeptChart" style="width:100%; height:350px;"></div>
+        </div>
+      </div>
+
+      <!-- 红黑榜 -->
+      <div class="grid-2" style="margin-bottom:1.5rem;">
+        <!-- 黑榜 -->
+        <div class="panel animate-in">
+          <div class="panel-header">
+            <div class="panel-title" style="color:var(--accent-red);">&#9888; 黑榜 - 需要关注</div>
+          </div>
+          <div class="panel-body" style="padding:0;">
+            <table class="data-table" id="healthBlackList">
+              <thead>
+                <tr>
+                  <th style="width:2.5rem;">排名</th>
+                  <th>项目</th>
+                  <th>页面数</th>
+                  <th>性能</th>
+                  <th>健康度</th>
+                </tr>
+              </thead>
+              <tbody id="healthBlackBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 红榜 -->
+        <div class="panel animate-in">
+          <div class="panel-header">
+            <div class="panel-title" style="color:var(--accent-green);">&#9733; 红榜 - 表现优秀</div>
+          </div>
+          <div class="panel-body" style="padding:0;">
+            <table class="data-table" id="healthRedList">
+              <thead>
+                <tr>
+                  <th style="width:2.5rem;">排名</th>
+                  <th>项目</th>
+                  <th>页面数</th>
+                  <th>性能</th>
+                  <th>健康度</th>
+                </tr>
+              </thead>
+              <tbody id="healthRedBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 平台健康度明细表格 -->
+      <div class="panel animate-in">
+        <div class="panel-header">
+          <div class="panel-title">平台健康度明细</div>
+        </div>
+        <div class="panel-body" style="padding:0; overflow-x:auto;">
+          <table class="data-table" id="healthPlatformTable">
+            <thead>
+              <tr>
+                <th>部门</th>
+                <th>平台</th>
+                <th>页面数</th>
+                <th>平均性能</th>
+                <th style="cursor:pointer;" onclick="sortHealthTable('avg_health')">平均健康度 &#8597;</th>
+                <th>达标率</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="healthPlatformBody">
+              <!-- JS 动态生成 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 部门详情页 ===== -->
+    <div class="page" id="page-department">
+      <div class="detail-header">
+        <div class="detail-title-group">
+          <button class="back-btn" onclick="showPage('dashboard')">&lt;</button>
+          <div>
+            <div class="detail-name" id="deptName"></div>
+            <div class="detail-url" id="deptInfo"></div>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" onclick="showAddSiteModal()">+ 添加站点</button>
+        </div>
+      </div>
+
+      <!-- 部门统计 -->
+      <div class="stats-grid" id="deptStats"></div>
+
+      <!-- 平台列表 -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">平台列表</div>
+        </div>
+        <div class="panel-body" id="deptPlatformList">
+          <!-- JS 动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 平台详情页 ===== -->
+    <div class="page" id="page-platform">
+      <div class="detail-header">
+        <div class="detail-title-group">
+          <button class="back-btn" id="platformBackBtn">&lt;</button>
+          <div>
+            <div class="detail-name" id="platName"></div>
+            <div class="detail-url" id="platInfo"></div>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" onclick="scanPlatformSites()">巡检该平台</button>
+          <button class="btn btn-primary" onclick="showAddSiteModal()">+ 添加页面</button>
+        </div>
+      </div>
+
+      <!-- 平台统计 -->
+      <div class="stats-grid" id="platStats"></div>
+
+      <!-- 平台评分 -->
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">平台平均评分</div>
+          </div>
+          <div class="panel-body">
+            <div class="gauge-grid" id="platGauges"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">性能趋势</div>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container" id="platTrendChart"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 页面列表 -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">页面列表</div>
+        </div>
+        <div class="panel-body" id="platPageList">
+          <!-- JS 动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 排行榜 ===== -->
+    <div class="page" id="page-ranking">
+      <div class="detail-header">
+        <div class="detail-name">排行榜</div>
+      </div>
+
+      <!-- 筛选栏 -->
+      <div class="ranking-filters">
+        <div class="ranking-filter-group">
+          <label class="ranking-filter-label">按部门筛选</label>
+          <select class="form-input form-select ranking-select" id="rankingDeptFilter" onchange="loadRanking()">
+            <option value="全部">全部</option>
+          </select>
+        </div>
+        <div class="ranking-filter-group">
+          <label class="ranking-filter-label">排序维度</label>
+          <select class="form-input form-select ranking-select" id="rankingSortField" onchange="loadRanking()">
+            <option value="health_score">综合健康度</option>
+            <option value="performance">性能</option>
+            <option value="accessibility">无障碍</option>
+            <option value="best_practices">最佳实践</option>
+            <option value="seo">SEO</option>
+            <option value="security">安全</option>
+            <option value="stability">稳定性</option>
+          </select>
+        </div>
+        <div class="ranking-filter-group">
+          <label class="ranking-filter-label">排序方式</label>
+          <select class="form-input form-select ranking-select" id="rankingOrder" onchange="loadRanking()">
+            <option value="desc">从优到劣</option>
+            <option value="asc">从劣到优</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 排行榜列表 -->
+      <div id="rankingList" class="ranking-list">
+        <div class="empty-state">
+          <div class="empty-icon">&#127942;</div>
+          <div class="empty-text">加载排行榜数据中...</div>
+        </div>
+      </div>
+
+      <!-- 统计摘要 -->
+      <div class="ranking-summary" id="rankingSummary" style="display:none;">
+        <div class="ranking-summary-item">
+          <span class="ranking-summary-value" id="rankingSumTotal">0</span>
+          <span class="ranking-summary-label">项目数</span>
+        </div>
+        <div class="ranking-summary-item">
+          <span class="ranking-summary-value" id="rankingSumPages">0</span>
+          <span class="ranking-summary-label">页面总数</span>
+        </div>
+        <div class="ranking-summary-item">
+          <span class="ranking-summary-value" id="rankingSumAvgHealth">0</span>
+          <span class="ranking-summary-label">平均健康度</span>
+        </div>
+        <div class="ranking-summary-item">
+          <span class="ranking-summary-value" id="rankingSumPassRate">0%</span>
+          <span class="ranking-summary-label">达标率(≥60分)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Sites 管理 ===== -->
+    <div class="page" id="page-sites">
+      <div class="detail-header">
+        <div class="detail-name">站点管理</div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" onclick="showAddGroupModal()">+ 添加部门</button>
+          <button class="btn btn-primary" onclick="showAddSiteModal()">+ 添加站点</button>
+          <button class="btn btn-success" onclick="showImportModal()">批量导入</button>
+          <button class="btn btn-success" onclick="showDiscoverModal()">自动发现</button>
+        </div>
+      </div>
+      <div id="sitesManagement">
+        <!-- JS 动态生成 -->
+      </div>
+    </div>
+
+    <!-- ===== Site Detail ===== -->
+    <div class="page" id="page-detail">
+      <div class="detail-header">
+        <div class="detail-title-group">
+          <button class="back-btn" id="detailBackBtn">&lt;</button>
+          <div>
+            <div class="detail-name" id="detailName"></div>
+            <div class="detail-url" id="detailUrl"></div>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" onclick="scanCurrentSite()">立即巡检</button>
+          <button class="btn" id="btnAiAnalyze" onclick="analyzeCurrentSite()">AI 分析</button>
+          <button class="btn" onclick="showEditSiteModal(currentSiteId)">编辑</button>
+          <button class="btn btn-danger" onclick="deleteCurrentSite()">删除</button>
+        </div>
+      </div>
+
+      <!-- 核心指标 -->
+      <div class="metrics-grid" id="detailMetrics"></div>
+
+      <!-- 评分 + AI报告 -->
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">评分</div>
+          </div>
+          <div class="panel-body">
+            <div class="gauge-grid" id="detailGauges"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">AI 分析</div>
+          </div>
+          <div class="panel-body" id="detailAiReport">
+            <div class="empty-state">
+              <div class="empty-icon">AI</div>
+              <div class="empty-text">暂无分析数据</div>
+              <div class="empty-hint">点击"立即巡检"生成分析报告</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 安全评估报告 -->
+      <div class="panel" id="securityReportPanel" style="display:none;">
+        <div class="panel-header">
+          <div class="panel-title" style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="font-size:1.1rem;">&#128274;</span> 安全评估报告
+            <span id="securityScoreBadge" style="font-size:0.75rem; padding:0.125rem 0.5rem; border-radius:0.25rem; font-weight:700;"></span>
+          </div>
+        </div>
+        <div class="panel-body" id="securityReportBody"></div>
+      </div>
+
+      <!-- 趋势图 -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">性能历史</div>
+        </div>
+        <div class="panel-body">
+          <div class="chart-container" id="detailTrendChart"></div>
+        </div>
+      </div>
+
+      <!-- 巡检历史 -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">巡检记录</div>
+        </div>
+        <div class="panel-body" style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>性能</th>
+                <th title="首次内容绘制 - 页面首个内容出现的时间">FCP(首次绘制)</th>
+                <th title="最大内容绘制 - 页面最大元素渲染完成的时间">LCP(最大绘制)</th>
+                <th title="累计布局偏移 - 页面元素意外移动的程度">CLS(布局偏移)</th>
+                <th title="总阻塞时间 - 主线程被长任务阻塞的总时间">TBT(阻塞时间)</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="detailHistory"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AI Reports ===== -->
+    <div class="page" id="page-reports">
+      <div class="detail-header">
+        <div class="detail-name">AI 分析报告</div>
+      </div>
+      <div id="reportsContainer">
+        <div class="empty-state">
+          <div class="empty-icon">AI</div>
+          <div class="empty-text">运行巡检以生成 AI 分析报告</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Alerts ===== -->
+    <div class="page" id="page-alerts">
+      <div class="detail-header">
+        <div class="detail-name">告警中心</div>
+      </div>
+      <div id="alertsContainer">
+        <div class="empty-state">
+          <div class="empty-icon">!</div>
+          <div class="empty-text">暂无告警</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 设置 ===== -->
+    <div class="page" id="page-settings">
+      <div class="detail-header">
+        <div class="detail-name">设置</div>
+      </div>
+
+      <!-- 扫描配置 -->
+      <div id="scanConfigArea"></div>
+
+      <!-- AI 模型配置 -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">AI 模型配置</div>
+          <div class="panel-actions">
+            <button class="btn btn-sm" onclick="disableAllAi()">全部禁用</button>
+            <button class="btn btn-sm btn-primary" onclick="showAddAiConfigForm()">添加模型</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <!-- 已有配置列表 -->
+          <div id="aiConfigList" style="margin-bottom:1rem;">
+            <div style="color:var(--text-muted); text-align:center; padding:1.5rem;">暂无配置</div>
+          </div>
+          <!-- 添加/编辑表单（默认隐藏） -->
+          <div id="aiConfigForm" style="display:none; border:1px solid var(--border); border-radius:0.75rem; padding:1.25rem;">
+            <div style="font-weight:600; font-size:0.875rem; margin-bottom:1rem; color:var(--text-primary);" id="aiFormTitle">添加模型</div>
+            <input type="hidden" id="aiEditId">
+            <div class="grid-2" style="gap:1rem;">
+              <div>
+                <div class="form-group">
+                  <label class="form-label">名称</label>
+                  <input type="text" class="form-input" id="aiName" placeholder="例如: DeepSeek 主力">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">供应商</label>
+                  <select class="form-input form-select" id="aiProvider" onchange="onAiProviderChange()"></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">模型</label>
+                  <select class="form-input form-select" id="aiModel"></select>
+                </div>
+                <div class="form-group" id="aiCustomModelGroup" style="display:none;">
+                  <label class="form-label">自定义模型 ID</label>
+                  <input type="text" class="form-input" id="aiCustomModel" placeholder="例如: gpt-4o">
+                </div>
+              </div>
+              <div>
+                <div class="form-group">
+                  <label class="form-label">API Key</label>
+                  <div style="display:flex; gap:0.5rem;">
+                    <input type="password" class="form-input" id="aiApiKey" placeholder="输入 API Key" style="flex:1;">
+                    <button class="btn btn-sm" onclick="toggleApiKeyVisibility()" style="white-space:nowrap;">显示</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">API Base URL <span style="font-size:0.75rem; color:var(--text-muted);">（留空用默认）</span></label>
+                  <input type="text" class="form-input" id="aiBaseUrl" placeholder="例如: https://api.openai.com">
+                </div>
+              </div>
+            </div>
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+              <button class="btn" onclick="testAiConnection()">测试连接</button>
+              <button class="btn btn-primary" onclick="saveAiConfig()">保存</button>
+              <button class="btn" onclick="hideAiConfigForm()">取消</button>
+              <span id="aiTestResult" style="line-height:2.25rem; font-size:0.8125rem;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token 用量统计 -->
+      <div class="panel" style="margin-top:1.5rem;">
+        <div class="panel-header">
+          <div class="panel-title">Token 用量 & 费用</div>
+          <div class="panel-actions">
+            <button class="btn btn-sm" onclick="loadTokenUsage()" style="margin-right:0.5rem;">刷新</button>
+            <select class="form-input form-select" id="tokenPeriod" onchange="loadTokenUsageDetail()" style="width:auto; padding:0.25rem 0.5rem; font-size:0.75rem;">
+              <option value="day">按天</option>
+              <option value="month">按月</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-body">
+          <!-- 汇总卡片 -->
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.25rem;">
+            <div style="text-align:center; padding:1rem; border-radius:0.5rem; background:var(--bg-secondary);">
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">今日</div>
+              <div id="tokenToday" style="font-size:1.125rem; font-weight:700; color:var(--accent-cyan); font-family:'JetBrains Mono',monospace;">0</div>
+              <div id="costToday" style="font-size:0.75rem; color:var(--accent-green); margin-top:0.125rem;">$0.00</div>
+            </div>
+            <div style="text-align:center; padding:1rem; border-radius:0.5rem; background:var(--bg-secondary);">
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">近 7 天</div>
+              <div id="tokenWeek" style="font-size:1.125rem; font-weight:700; color:var(--accent-blue); font-family:'JetBrains Mono',monospace;">0</div>
+              <div id="costWeek" style="font-size:0.75rem; color:var(--accent-green); margin-top:0.125rem;">$0.00</div>
+            </div>
+            <div style="text-align:center; padding:1rem; border-radius:0.5rem; background:var(--bg-secondary);">
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">近 30 天</div>
+              <div id="tokenMonth" style="font-size:1.125rem; font-weight:700; color:var(--accent-purple); font-family:'JetBrains Mono',monospace;">0</div>
+              <div id="costMonth" style="font-size:0.75rem; color:var(--accent-green); margin-top:0.125rem;">$0.00</div>
+            </div>
+          </div>
+          <!-- 明细表 -->
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>模型</th>
+                  <th>调用次数</th>
+                  <th>输入 Token</th>
+                  <th>输出 Token</th>
+                  <th>合计</th>
+                  <th>费用 ($)</th>
+                </tr>
+              </thead>
+              <tbody id="tokenDetailBody">
+                <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">暂无用量数据</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:1.5rem;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">告警阈值</div>
+          </div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label class="form-label">性能评分阈值</label>
+              <input type="number" class="form-input" value="60" id="threshPerf">
+            </div>
+            <div class="form-group">
+              <label class="form-label">LCP 阈值 (ms)</label>
+              <input type="number" class="form-input" value="4000" id="threshLCP">
+            </div>
+            <div class="form-group">
+              <label class="form-label">FCP 阈值 (ms)</label>
+              <input type="number" class="form-input" value="3000" id="threshFCP">
+            </div>
+            <div class="form-group">
+              <label class="form-label">CLS 阈值</label>
+              <input type="number" class="form-input" value="0.25" step="0.01" id="threshCLS">
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">通知设置</div>
+          </div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label class="form-label">钉钉机器人 Webhook</label>
+              <input type="text" class="form-input" placeholder="https://oapi.dingtalk.com/robot/send?access_token=..." id="settingDingtalk">
+            </div>
+            <div class="form-group">
+              <label class="form-label">飞书/Lark 机器人 Webhook</label>
+              <input type="text" class="form-input" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..." id="settingFeishu">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 定时任务状态 -->
+      <div class="panel" style="margin-top:1.5rem;">
+        <div class="panel-header">
+          <div class="panel-title">定时任务状态</div>
+          <div class="panel-actions">
+            <button class="btn btn-sm" onclick="refreshScheduler()">刷新</button>
+          </div>
+        </div>
+        <div class="panel-body" id="schedulerStatus">
+          <div style="color:var(--text-muted);">加载中...</div>
+        </div>
+      </div>
+
+      <!-- 报告推送配置 -->
+      <div class="panel" style="margin-top:1.5rem;">
+        <div class="panel-header">
+          <div class="panel-title">报告推送</div>
+        </div>
+        <div class="panel-body">
+          <div class="grid-2" style="gap:1.5rem;">
+            <!-- 日报配置 -->
+            <div style="border:1px solid var(--border); border-radius:0.75rem; padding:1.25rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <div style="font-weight:600; font-size:0.9375rem; color:var(--text-primary);">日报推送</div>
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                  <input type="checkbox" id="reportDailyEnabled" style="width:1rem; height:1rem;">
+                  <span style="font-size:0.8125rem; color:var(--text-secondary);">启用</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">推送时间（Cron 表达式）</label>
+                <select class="form-input form-select" id="reportDailyCron">
+                  <option value="0 8 * * *">每天 08:00</option>
+                  <option value="0 9 * * *" selected>每天 09:00</option>
+                  <option value="0 10 * * *">每天 10:00</option>
+                  <option value="30 9 * * *">每天 09:30</option>
+                  <option value="0 18 * * *">每天 18:00</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 周报配置 -->
+            <div style="border:1px solid var(--border); border-radius:0.75rem; padding:1.25rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <div style="font-weight:600; font-size:0.9375rem; color:var(--text-primary);">周报推送</div>
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                  <input type="checkbox" id="reportWeeklyEnabled" style="width:1rem; height:1rem;">
+                  <span style="font-size:0.8125rem; color:var(--text-secondary);">启用</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">推送时间（Cron 表达式）</label>
+                <select class="form-input form-select" id="reportWeeklyCron">
+                  <option value="0 9 * * 1" selected>每周一 09:00</option>
+                  <option value="0 10 * * 1">每周一 10:00</option>
+                  <option value="0 9 * * 5">每周五 09:00</option>
+                  <option value="0 14 * * 5">每周五 14:00</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 推送渠道 -->
+          <div style="margin-top:1.25rem;">
+            <div class="form-group">
+              <label class="form-label">推送渠道</label>
+              <select class="form-input form-select" id="reportWebhookType">
+                <option value="feishu">飞书 / Lark</option>
+                <option value="dingtalk">钉钉</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Webhook 地址</label>
+              <input type="text" class="form-input" id="reportWebhookUrl" placeholder="输入飞书或钉钉的 Webhook 地址">
+            </div>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div style="display:flex; gap:0.75rem; margin-top:1.25rem; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="saveReportConfig()">保存配置</button>
+            <button class="btn" onclick="previewReport('daily')">预览日报</button>
+            <button class="btn" onclick="previewReport('weekly')">预览周报</button>
+            <button class="btn btn-success" onclick="manualPushReport('daily')">立即推送日报</button>
+            <button class="btn btn-success" onclick="manualPushReport('weekly')">立即推送周报</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 推送历史 -->
+      <div class="panel" style="margin-top:1.5rem;">
+        <div class="panel-header">
+          <div class="panel-title">推送历史</div>
+          <div class="panel-actions">
+            <button class="btn btn-sm" onclick="loadReportLogs()">刷新</button>
+          </div>
+        </div>
+        <div class="panel-body" style="padding:0; overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>类型</th>
+                <th>状态</th>
+                <th>详情</th>
+              </tr>
+            </thead>
+            <tbody id="reportLogBody">
+              <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">暂无推送记录</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 添加站点 Modal -->
+  <div class="modal-overlay" id="addSiteModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">添加站点</div>
+        <button class="modal-close" onclick="closeModal('addSiteModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">部门 *</label>
+          <div style="display:flex; gap:0.5rem;">
+            <select class="form-input form-select" id="siteFormGroup" style="flex:1;" onchange="onGroupChange()">
+              <option value="">-- 请选择部门 --</option>
+            </select>
+            <button class="btn btn-sm" type="button" onclick="showNewGroupInput()" id="btnNewGroup" title="新增部门">+ 新增</button>
+          </div>
+          <input type="text" class="form-input" id="siteFormGroupNew" placeholder="输入新部门名称" style="display:none; margin-top:0.5rem;">
+        </div>
+        <div class="form-group">
+          <label class="form-label">平台名称 *</label>
+          <div style="display:flex; gap:0.5rem;">
+            <select class="form-input form-select" id="siteFormPlatform" style="flex:1;" onchange="onPlatformChange()">
+              <option value="">-- 请选择平台 --</option>
+            </select>
+            <button class="btn btn-sm" type="button" onclick="showNewPlatformInput()" id="btnNewPlatform" title="新增平台">+ 新增</button>
+          </div>
+          <input type="text" class="form-input" id="siteFormPlatformNew" placeholder="输入新平台名称" style="display:none; margin-top:0.5rem;">
+        </div>
+        <div class="form-group">
+          <label class="form-label">页面名称 *</label>
+          <input type="text" class="form-input" id="siteFormName" placeholder="例如: 首页 / 登录页 / 控制台">
+        </div>
+        <div class="form-group">
+          <label class="form-label">URL *</label>
+          <input type="text" class="form-input" id="siteFormUrl" placeholder="https://example.com">
+        </div>
+        <!-- 巡检频率已移至项目级设置 -->
+        <div class="form-group">
+          <label class="form-label">
+            <input type="checkbox" id="siteFormLogin"> 需要登录
+          </label>
+        </div>
+        <div id="loginFields" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">登录地址</label>
+            <input type="text" class="form-input" id="siteFormLoginUrl" placeholder="https://example.com/login">
+          </div>
+          <div class="form-group">
+            <label class="form-label">用户名</label>
+            <input type="text" class="form-input" id="siteFormLoginUser">
+          </div>
+          <div class="form-group">
+            <label class="form-label">密码</label>
+            <input type="password" class="form-input" id="siteFormLoginPass">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addSite()" style="width:100%; justify-content:center;">添加站点</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加部门 Modal -->
+  <div class="modal-overlay" id="addGroupModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">添加部门</div>
+        <button class="modal-close" onclick="closeModal('addGroupModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">部门名称 *</label>
+          <input type="text" class="form-input" id="groupFormName" placeholder="例如: 无极 / 悦达">
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1rem;">
+          添加站点时选择对应部门即可自动创建分组，也可以在这里预先创建。
+        </p>
+        <button class="btn btn-primary" onclick="addGroup()" style="width:100%; justify-content:center;">创建部门</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑站点 Modal -->
+  <div class="modal-overlay" id="editSiteModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">编辑站点</div>
+        <button class="modal-close" onclick="closeModal('editSiteModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editSiteId">
+        <div class="form-group">
+          <label class="form-label">部门</label>
+          <select class="form-input form-select" id="editSiteGroup"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">平台名称</label>
+          <input type="text" class="form-input" id="editSitePlatform">
+        </div>
+        <div class="form-group">
+          <label class="form-label">页面名称</label>
+          <input type="text" class="form-input" id="editSiteName">
+        </div>
+        <div class="form-group">
+          <label class="form-label">URL</label>
+          <input type="text" class="form-input" id="editSiteUrl">
+        </div>
+        <!-- 巡检频率已移至项目级设置 -->
+        <div class="form-group">
+          <label class="form-label">
+            <input type="checkbox" id="editSiteEnabled" checked> 启用
+          </label>
+        </div>
+        <button class="btn btn-primary" onclick="saveEditSite()" style="width:100%; justify-content:center;">保存修改</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 批量导入 Modal -->
+  <div class="modal-overlay" id="importSitesModal">
+    <div class="modal" style="max-width:720px;">
+      <div class="modal-header">
+        <div class="modal-title">批量导入站点</div>
+        <button class="modal-close" onclick="closeModal('importSitesModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- CSV 格式说明 -->
+        <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.8125rem;">
+          <div style="font-weight:600; margin-bottom:0.375rem; color:var(--text-primary);">CSV 格式说明</div>
+          <div style="color:var(--text-secondary);">每行一条记录，格式为：<code style="background:rgba(34,211,238,0.1); padding:0.125rem 0.375rem; border-radius:0.25rem; font-family:'JetBrains Mono',monospace; font-size:0.75rem;">部门,平台名称,页面名称,URL,巡检频率(可选)</code></div>
+          <div style="color:var(--text-muted); font-size:0.75rem; margin-top:0.25rem;">不存在的部门将自动创建 | 巡检频率默认为 <code style="font-family:'JetBrains Mono',monospace;">0 */6 * * *</code>（每6小时）</div>
+          <div style="margin-top:0.5rem;">
+            <button class="btn btn-sm" onclick="downloadCsvTemplate()">下载示例模板</button>
+          </div>
+        </div>
+
+        <!-- 文件上传区域 -->
+        <div id="csvDropZone" style="border:2px dashed var(--border); border-radius:0.5rem; padding:2rem 1rem; text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:1rem;" onclick="document.getElementById('csvFileInput').click()">
+          <div style="font-size:1.5rem; margin-bottom:0.375rem; color:var(--text-muted);">&#128194;</div>
+          <div style="font-size:0.875rem; color:var(--text-secondary);">点击选择或拖拽 .csv 文件到此处</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;" id="csvFileName"></div>
+          <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleCsvFile(event)">
+        </div>
+
+        <!-- 文本框粘贴 -->
+        <div class="form-group">
+          <label class="form-label">或直接粘贴 CSV 内容</label>
+          <textarea class="form-input" id="csvTextArea" rows="6" placeholder="无极,黑料网,首页,https://heiliao.com/,0 */6 * * *
+无极,每日大赛,首页,https://www.mrds66.com/,0 */6 * * *" style="font-family:'JetBrains Mono',monospace; font-size:0.8125rem; resize:vertical;"></textarea>
+        </div>
+
+        <!-- 解析预览按钮 -->
+        <button class="btn" onclick="previewCsvImport()" style="width:100%; justify-content:center; margin-bottom:1rem;">解析预览</button>
+
+        <!-- 预览表格 -->
+        <div id="csvPreviewArea" style="display:none; margin-bottom:1rem;">
+          <div style="font-weight:600; font-size:0.875rem; margin-bottom:0.5rem; color:var(--text-primary);">预览（共 <span id="csvPreviewCount">0</span> 条）</div>
+          <div style="overflow-x:auto; max-height:300px; overflow-y:auto; border:1px solid var(--border); border-radius:0.5rem;">
+            <table class="data-table" style="margin:0;">
+              <thead>
+                <tr>
+                  <th>行号</th>
+                  <th>部门</th>
+                  <th>平台名称</th>
+                  <th>页面名称</th>
+                  <th>URL</th>
+                  <th>巡检频率</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody id="csvPreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 导入按钮 -->
+        <button class="btn btn-primary" id="csvImportBtn" onclick="executeCsvImport()" style="width:100%; justify-content:center;" disabled>导入站点</button>
+
+        <!-- 导入结果 -->
+        <div id="csvImportResult" style="display:none; margin-top:1rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 项目巡检频率设置弹窗 -->
+  <div class="modal-overlay" id="projectCronModal">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <div class="modal-title">项目巡检频率</div>
+        <button class="modal-close" onclick="closeModal('projectCronModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="projectCronDept">
+        <input type="hidden" id="projectCronPlat">
+        <div class="form-group">
+          <label class="form-label">巡检频率</label>
+          <select class="form-input form-select" id="projectCronSelect">
+            <option value="*/30 * * * *">每30分钟</option>
+            <option value="0 */1 * * *">每1小时</option>
+            <option value="0 */3 * * *">每3小时</option>
+            <option value="0 */6 * * *">每6小时</option>
+            <option value="0 */12 * * *">每12小时</option>
+            <option value="0 0 * * *">每天1次</option>
+            <option value="0 0 * * 1">每周1次</option>
+          </select>
+        </div>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin:0.5rem 0;">该频率将应用于项目下所有页面</p>
+        <button class="btn btn-primary" onclick="saveProjectCron()" style="width:100%; justify-content:center;">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 项目域名替换弹窗 -->
+  <div class="modal-overlay" id="domainReplaceModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <div class="modal-title">域名替换</div>
+        <button class="modal-close" onclick="closeModal('domainReplaceModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="domainReplaceDept">
+        <input type="hidden" id="domainReplacePlat">
+        <div class="form-group">
+          <label class="form-label">当前域名</label>
+          <input type="text" class="form-input" id="domainReplaceOld" placeholder="自动检测" readonly style="opacity:0.7;">
+        </div>
+        <div class="form-group">
+          <label class="form-label">新域名</label>
+          <input type="text" class="form-input" id="domainReplaceNew" placeholder="例如: www.newdomain.com">
+        </div>
+        <p id="domainReplaceInfo" style="font-size:0.75rem; color:var(--text-muted); margin:0.5rem 0;"></p>
+        <button class="btn btn-primary" onclick="saveDomainReplace()" style="width:100%; justify-content:center;">确认替换</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 需关注页面弹窗 -->
+  <div class="modal-overlay" id="alertSitesModal">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-header">
+        <div class="modal-title" id="alertSitesTitle">需关注页面</div>
+        <button class="modal-close" onclick="closeModal('alertSitesModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>页面</th>
+              <th>性能分</th>
+              <th>URL</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="alertSitesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自动发现 Modal -->
+  <div class="modal-overlay" id="discoverModal">
+    <div class="modal" style="max-width:800px;">
+      <div class="modal-header">
+        <div class="modal-title">站点自动发现</div>
+        <button class="modal-close" onclick="closeModal('discoverModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- 输入区域 -->
+        <div class="form-group">
+          <label class="form-label">入口 URL *</label>
+          <input type="text" class="form-input" id="discoverUrl" placeholder="https://example.com">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label class="form-label">部门 *</label>
+            <select class="form-input form-select" id="discoverGroup">
+              <option value="">-- 请选择部门 --</option>
+            </select>
+            <input type="text" class="form-input" id="discoverGroupNew" placeholder="或输入新部门名称" style="margin-top:0.5rem;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">平台名称 *</label>
+            <input type="text" class="form-input" id="discoverPlatform" placeholder="例如: 官网 / 后台管理">
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="discoverStartBtn" onclick="startDiscover()" style="width:100%; justify-content:center; margin-bottom:1rem;">开始扫描</button>
+
+        <!-- 扫描进度 -->
+        <div id="discoverLoading" style="display:none; text-align:center; padding:2rem;">
+          <div style="display:inline-block; width:2rem; height:2rem; border:3px solid var(--border); border-top-color:var(--accent-cyan); border-radius:50%; animation:spin 0.8s linear infinite;"></div>
+          <div style="margin-top:0.75rem; color:var(--text-secondary); font-size:0.875rem;">正在扫描页面，请稍候...</div>
+          <div style="margin-top:0.25rem; color:var(--text-muted); font-size:0.75rem;">这可能需要一些时间，取决于站点大小</div>
+        </div>
+
+        <!-- 扫描结果 -->
+        <div id="discoverResults" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <div style="font-weight:600; font-size:0.875rem; color:var(--text-primary);">
+              发现 <span id="discoverCount">0</span> 个页面
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button class="btn btn-sm" onclick="toggleDiscoverSelectAll()">全选 / 取消全选</button>
+            </div>
+          </div>
+          <div style="overflow-y:auto; max-height:350px; border:1px solid var(--border); border-radius:0.5rem;">
+            <table class="data-table" style="margin:0;">
+              <thead>
+                <tr>
+                  <th style="width:2.5rem;"><input type="checkbox" id="discoverSelectAll" onchange="toggleDiscoverCheckboxes(this.checked)"></th>
+                  <th>页面名称</th>
+                  <th>路径</th>
+                  <th>URL</th>
+                </tr>
+              </thead>
+              <tbody id="discoverTableBody"></tbody>
+            </table>
+          </div>
+          <button class="btn btn-primary" id="discoverAddBtn" onclick="addDiscoveredSites()" style="width:100%; justify-content:center; margin-top:1rem;">添加选中页面</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 报告预览 Modal -->
+  <div class="modal-overlay" id="reportPreviewModal">
+    <div class="modal" style="max-width:800px; max-height:85vh;">
+      <div class="modal-header">
+        <div class="modal-title" id="reportPreviewTitle">报告预览</div>
+        <button class="modal-close" onclick="closeModal('reportPreviewModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="overflow-y:auto; max-height:calc(85vh - 4rem);">
+        <div id="reportPreviewContent" style="font-size:0.875rem; line-height:1.7; color:var(--text-primary);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 项目页面详情弹框 -->
+  <div class="modal-overlay" id="projectPagesModal">
+    <div class="modal" style="max-width:900px; max-height:85vh;">
+      <div class="modal-header">
+        <div class="modal-title" id="projectPagesTitle">项目页面详情</div>
+        <button class="modal-close" onclick="closeModal('projectPagesModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="overflow-y:auto; max-height:calc(85vh - 4rem); padding:0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>页面</th>
+              <th>性能</th>
+              <th>无障碍</th>
+              <th>最佳实践</th>
+              <th>SEO</th>
+              <th>安全</th>
+              <th>健康度</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="projectPagesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    /* 报告预览 Markdown 样式 */
+    #reportPreviewContent h1 { font-size:1.375rem; font-weight:700; margin:0 0 1rem; color:var(--text-primary); border-bottom:2px solid var(--accent-cyan); padding-bottom:0.5rem; }
+    #reportPreviewContent h2 { font-size:1.125rem; font-weight:600; margin:1.5rem 0 0.75rem; color:var(--accent-cyan); }
+    #reportPreviewContent h3 { font-size:1rem; font-weight:600; margin:1rem 0 0.5rem; color:var(--text-primary); }
+    #reportPreviewContent p { margin:0.5rem 0; }
+    #reportPreviewContent strong { color:var(--text-primary); }
+    #reportPreviewContent code { background:rgba(34,211,238,0.1); padding:0.125rem 0.375rem; border-radius:0.25rem; font-family:'JetBrains Mono',monospace; font-size:0.8125rem; }
+    #reportPreviewContent table { width:100%; border-collapse:collapse; margin:0.75rem 0; font-size:0.8125rem; }
+    #reportPreviewContent th { background:var(--card-bg); padding:0.5rem 0.75rem; text-align:left; border:1px solid var(--border); font-weight:600; color:var(--text-secondary); }
+    #reportPreviewContent td { padding:0.5rem 0.75rem; border:1px solid var(--border); color:var(--text-primary); }
+    #reportPreviewContent tr:hover td { background:rgba(34,211,238,0.03); }
+    #reportPreviewContent hr { border:none; border-top:1px solid var(--border); margin:1rem 0; }
+    #reportPreviewContent ul, #reportPreviewContent ol { padding-left:1.5rem; margin:0.5rem 0; }
+    #reportPreviewContent li { margin:0.25rem 0; }
+    #reportPreviewContent em { color:var(--text-muted); font-style:italic; }
+  </style>
+
+  <!-- 全局巡检进度浮窗 -->
+  <div id="scanProgressFloat" style="display:none; position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
+    background:var(--bg-card); border:1px solid var(--accent-cyan);
+    border-radius:0.75rem; box-shadow:0 8px 32px rgba(0,0,0,0.4), var(--glow-cyan);
+    overflow:hidden; font-size:0.8125rem; backdrop-filter:blur(12px); transition:width 0.3s, max-height 0.3s;">
+    <!-- 头部（点击切换展开/收缩） -->
+    <div id="scanProgressHeader" style="padding:0.625rem 0.875rem; display:flex; justify-content:space-between; align-items:center;
+      border-bottom:1px solid var(--border-color); background:rgba(34,211,238,0.05); cursor:pointer;"
+      onclick="toggleScanProgressFloat()">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <div id="scanProgressDot" style="width:8px; height:8px; border-radius:50%; background:var(--accent-cyan); animation:statusBlink 1.5s infinite;"></div>
+        <span style="font-weight:600; color:var(--text-primary);" id="scanProgressTitle">巡检中</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-family:'JetBrains Mono',monospace; color:var(--accent-cyan);" id="scanProgressCount">0/0</span>
+        <button id="scanStopBtn" onclick="event.stopPropagation(); stopScan()" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:var(--accent-red); border-radius:0.375rem; padding:0.125rem 0.5rem; font-size:0.6875rem; cursor:pointer; font-weight:600;">停止</button>
+      </div>
+    </div>
+    <!-- 进度条（始终显示） -->
+    <div style="height:3px; background:var(--bg-secondary);">
+      <div id="scanProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg, var(--accent-cyan), var(--accent-blue)); transition:width 0.5s;"></div>
+    </div>
+    <!-- 可折叠的详情区域 -->
+    <div id="scanProgressDetail">
+      <!-- 当前站点 -->
+      <div id="scanProgressCurrent" style="padding:0.5rem 0.875rem; color:var(--text-secondary); border-bottom:1px solid var(--border-color);"></div>
+      <!-- 已完成列表 -->
+      <div id="scanProgressList" style="max-height:35vh; overflow-y:auto; padding:0.375rem 0;"></div>
+    </div>
+  </div>
+
+  <!-- ECharts -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "ai-perf-monitor",
+  "version": "1.0.0",
+  "description": "AI-Powered Frontend Performance Monitor - 前端性能自动化巡检平台",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "scan": "node src/cli.js scan",
+    "scan:all": "node src/cli.js scan --all",
+    "report": "node src/cli.js report"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "chalk": "^4.1.2",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.10",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "lighthouse": "^11.4.0",
+    "node-cron": "^3.0.3",
+    "puppeteer": "^21.7.0",
+    "uuid": "^9.0.0",
+    "axe-core": "^4.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
